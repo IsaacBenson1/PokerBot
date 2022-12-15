@@ -16,6 +16,11 @@ from pypokerengine.utils.game_state_utils import restore_game_state
 import random
 from pypokerengine.utils.game_state_utils import restore_game_state
 import copy
+
+from pypokerengine.players import BasePokerPlayer
+from pypokerengine.utils.card_utils import gen_cards, estimate_hole_card_win_rate
+
+NB_SIMULATION = 15
 class PokerGame:
 
     def __init__(self):
@@ -25,8 +30,8 @@ class PokerGame:
       simon = MCTSPlayer()
       # 2. Setup GameState object
       players_info = {
-          "uuid-1": {"name": "NEMO", "stack": 10000, "alg": FishPlayer()},
-          "uuid-2": {"name": "DORY", "stack": 10000, "alg": FishPlayer()},
+          "uuid-1": {"name": "NEMO", "stack": 10000, "alg": HonestPlayer()},
+          "uuid-2": {"name": "DORY", "stack": 10000, "alg": HonestPlayer()},
           "uuid-3": {"name": "MCTS", "stack": 10000, "alg": simon}
       }
       initial_state = emulator.generate_initial_game_state(players_info)
@@ -41,7 +46,7 @@ class PokerGame:
         max = -10000
         winner = "none"
         for player in game_state['table'].seats.players:
-            print(player.name +" : " + str(player.stack))
+            print(player.name +" : $ " + str(player.stack) + ".00")
             if player.stack > max:
                 max = player.stack
                 winner = player.name
@@ -333,7 +338,7 @@ class MCTSPlayer(BasePokerPlayer):  # Do not forget to make parent class as "Bas
             # newHole = [Card.from_str(hole_card[0]), Card.from_str(hole_card[1])]
             # game_state['table'].seats.players[2].hole_card = newHole
             mycopy = copy.deepcopy(self.emulator)
-            action = monte_carlo_tree_search(game_state,mycopy,10)
+            action = monte_carlo_tree_search(game_state,mycopy,1000)
             myAction = action['action']
             myAmount = action['amount']
             return myAction, myAmount
@@ -349,6 +354,40 @@ class FishPlayer(BasePokerPlayer):  # Do not forget to make parent class as "Bas
 
     def receive_game_start_message(self, game_info):
         pass
+
+    def receive_round_start_message(self, round_count, hole_card, seats):
+        pass
+
+    def receive_street_start_message(self, street, round_state):
+        pass
+
+    def receive_game_update_message(self, action, round_state):
+        pass
+
+    def receive_round_result_message(self, winners, hand_info, round_state):
+        pass
+
+
+
+class HonestPlayer(BasePokerPlayer):
+
+    def declare_action(self, valid_actions, hole_card, round_state, game_state):
+        community_card = round_state['community_card']
+        self.nb_player = 3
+        win_rate = estimate_hole_card_win_rate(
+                nb_simulation=NB_SIMULATION,
+                nb_player=self.nb_player,
+                hole_card=gen_cards(hole_card),
+                community_card=gen_cards(community_card)
+                )
+        if win_rate >= 1.0 / self.nb_player:
+            action = valid_actions[1]  # fetch CALL action info
+        else:
+            action = valid_actions[0]  # fetch FOLD action info
+        return action['action'], action['amount']
+
+    def receive_game_start_message(self, game_info):
+        self.nb_player = game_info['player_num']
 
     def receive_round_start_message(self, round_count, hole_card, seats):
         pass
@@ -434,7 +473,7 @@ def monte_carlo_tree_search(state, game, N=1000):
     return root.children.get(max_state)
 
 
-totalgames = 100
+totalgames = 10
 winnings = {"NEMO": 0, "DORY": 0, "MCTS": 0}
 for yuh in range(totalgames):
     game = PokerGame()
