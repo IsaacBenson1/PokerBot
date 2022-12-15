@@ -12,7 +12,7 @@ from pypokerengine.engine.message_builder import MessageBuilder
 from pypokerengine.players import BasePokerPlayer
 from pypokerengine.utils.game_state_utils import deepcopy_game_state
 
-class Emulator(object):
+class EmulatorDIE(object):
 
     def __init__(self):
         self.game_rule = {}
@@ -79,6 +79,7 @@ class Emulator(object):
             next_player_pos = game_state["next_player"]
             next_player_uuid = game_state["table"].seats.players[next_player_pos].uuid
             next_player_algorithm = self.fetch_player(next_player_uuid)
+            print(next_player_pos)
             msg = MessageBuilder.build_ask_message(next_player_pos, game_state)["message"]
             action, amount = next_player_algorithm.declare_action(\
                     msg["valid_actions"], msg["hole_card"], msg["round_state"])

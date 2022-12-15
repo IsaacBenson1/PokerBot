@@ -38,6 +38,7 @@ class RoundManager:
       state["next_player"] = state["table"].next_ask_waiting_player_pos(state["next_player"])
       next_player_pos = state["next_player"]
       next_player = state["table"].seats.players[next_player_pos]
+
       ask_message = (next_player.uuid, MessageBuilder.build_ask_message(next_player_pos, state))
       return state, [update_msg, ask_message]
 
