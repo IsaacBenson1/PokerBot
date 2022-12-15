@@ -34,12 +34,20 @@ class PokerGame:
       simon.set_emulator(emulator, game_state)
       # 3. Run simulation and get updated GameState object
       endstate, eventsone = emulator.run_until_game_finish(game_state)
-      self.printgame(endstate)
+      self.winner = self.endgame(endstate)
 
 
-    def printgame(self, game_state):
+    def endgame(self, game_state):
+        max = -10000
+        winner = "none"
         for player in game_state['table'].seats.players:
             print(player.name +" : " + str(player.stack))
+            if player.stack > max:
+                max = player.stack
+                winner = player.name
+        return winner
+
+
 
 
 
@@ -325,7 +333,7 @@ class MCTSPlayer(BasePokerPlayer):  # Do not forget to make parent class as "Bas
             # newHole = [Card.from_str(hole_card[0]), Card.from_str(hole_card[1])]
             # game_state['table'].seats.players[2].hole_card = newHole
             mycopy = copy.deepcopy(self.emulator)
-            action = monte_carlo_tree_search(game_state,mycopy,5)
+            action = monte_carlo_tree_search(game_state,mycopy,10)
             myAction = action['action']
             myAmount = action['amount']
             return myAction, myAmount
@@ -425,6 +433,14 @@ def monte_carlo_tree_search(state, game, N=1000):
     max_state = max(root.children, key=lambda p: p.N)
     return root.children.get(max_state)
 
-for yuh in range(5):
-    PokerGame()
+
+totalgames = 100
+winnings = {"NEMO": 0, "DORY": 0, "MCTS": 0}
+for yuh in range(totalgames):
+    game = PokerGame()
+    winnings[game.winner] +=1
     print("________________")
+
+print("WINRATES")
+for key in winnings:
+    print(key +" : " +str(100*(winnings[key] / totalgames))+"%")
